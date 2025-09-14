@@ -1,0 +1,294 @@
+/* ========= Tema (variáveis) ========= */
+:root{
+  --bg:#0b0f14;
+  --panel:#121821;
+  --panel-2:#0f1520;
+  --border:#1e2a3d;
+  --muted:#8aa0b2;
+  --text:#ecf1f5;
+  --accent:#0b76cf;
+  --accent2:#16a34a;
+  --bad:#dc2626;
+
+  --header-grad1:#101622;
+  --header-grad2:#0b0f14;
+
+  --btn-bg:#172234;
+  --btn-border:#223146;
+  --btn-text:#dce7f0;
+
+  --input-bg:#111826;
+  --input-border:#23344b;
+
+  --tag:#a9d6ff;
+
+  /* Altura fixa das linhas da SplitTable (mantenha em sync com ITEM_SIZE no TS) */
+  --split-row-h:52px;
+
+  /* Intensidade da zebra (quanto “do texto” entra na mistura) */
+  --zebra-mix:14%;
+}
+
+/* tema claro: funcione com body.light OU html.light */
+html.light, body.light{
+  --bg:#f9fafb;
+  --panel:#ffffff;
+  --panel-2:#f1f5f9;
+  --border:#d0d7e2;
+  --muted:#4b5563;
+  --text:#111827;
+  --accent:#0b76cf;
+  --accent2:#16a34a;
+  --bad:#dc2626;
+
+  --header-grad1:#e8eef6;
+  --header-grad2:#f9f9fb;
+
+  --btn-bg:#e6eef7;
+  --btn-border:#c9d7e6;
+  --btn-text:#0f172a;
+
+  --input-bg:#ffffff;
+  --input-border:#c9d7e6;
+
+  --tag:#0b76cf;
+
+  /* no claro, zebra mais sutil */
+  --zebra-mix:8%;
+}
+
+/* ========= Base ========= */
+*{box-sizing:border-box}
+html,body,#root{height:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, sans-serif;
+}
+a{color:var(--tag); text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* Header ocupa 100%; conteúdo alinha pela .container */
+/* Header ocupa 100%; conteúdo alinha pela .container */
+header{
+  border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,var(--header-grad1),var(--header-grad2));
+  position:sticky; top:0;
+  z-index:20;              /* ↑ sobrepõe qualquer painel quando rola */
+}
+header .container{
+  position: relative;      /* ← permite posicionar .header-edge */
+  padding:12px 16px;
+  max-width:1200px;
+  margin:0 auto;
+  display:flex; justify-content:flex-start; align-items:center; gap:12px;
+}
+
+/* botão do tema “colado” na borda direita da janela */
+.header-edge{
+  position:absolute;
+  right:16px; top:50%;
+  transform:translateY(-50%);
+}
+
+/* ========= Layout utilidades ========= */
+.container{padding:16px;max-width:1200px;margin:0 auto}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grid{display:grid;gap:12px}
+
+/* ========= Botões / Inputs ========= */
+.btn{
+  background:var(--btn-bg);
+  color:var(--btn-text);
+  border:1px solid var(--btn-border);
+  border-radius:10px;
+  padding:8px 12px;
+  cursor:pointer;
+}
+.btn:hover{filter:brightness(1.07)}
+input[type=file]{display:none}
+
+select,input[type=text]{
+  background:var(--input-bg);
+  border:1px solid var(--input-border);
+  color:var(--text);
+  border-radius:10px;
+  padding:8px;
+}
+
+.pill{
+  display:inline-block;
+  margin-left:8px;
+  padding:2px 8px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  color:var(--muted);
+  font-size:12px;
+}
+
+/* ========= Cartões / Painéis ========= */
+.panel{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:12px;
+}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.card-sm{background:var(--panel-2);border:1px solid var(--border);border-radius:12px;padding:12px}
+.card-sm h3{margin:0 0 6px 0;font-size:16px}
+.card-sm .meta{color:var(--muted);font-size:12px}
+
+/* ========= Tabelas genéricas ========= */
+.table{width:100%;border-collapse:separate;border-spacing:0 6px}
+.table th,.table td{padding:8px 10px;text-align:left}
+.table thead th{color:var(--muted)}
+.table tbody tr{background:var(--panel-2);border:1px solid var(--border)}
+.table tbody tr:hover{
+  /* fallback simples + mistura quando suportado */
+  background:var(--panel-2);
+  background:color-mix(in srgb, var(--panel-2) 88%, var(--text) 12%);
+}
+.sticky{position:sticky;top:0;background:var(--panel);z-index:2}
+
+
+/* ========= Splits (painel) ========= */
+.panel--splits{
+  padding: 0;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  overflow: visible;     /* não esconda a barra da splits-wrap */
+  position: relative;
+  z-index: 1;
+}
+.panel--splits .panel-head,
+.panel--splits .panel-legend{ padding:12px; }
+
+.splits-wrap{
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 6px 1px 12px 1px;
+  text-align: center;
+  margin: 0;
+  max-width: 100%;
+  display: block;
+  position: relative;
+  z-index: 1;
+}
+
+.table-wide{
+  width: max-content;
+  min-width: 100%;
+  margin: 0 auto;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+/* sticky por célula */
+.table-wide thead th{
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  z-index: 4;
+}
+.split-col{ background: var(--panel-2); border-bottom: 1px solid var(--border); }
+
+.best-split{ outline: 2px dashed var(--accent2); outline-offset: -2px; border-radius: 6px; }
+.best-cum{   outline: 2px dashed var(--accent);  outline-offset: -2px; border-radius: 6px; }
+.cell-bad{ color: var(--bad) }
+
+.cell-lines .l1{ display:block; font-weight:600 }
+.cell-lines .l2{ display:block; font-size:12px; color:var(--muted) }
+/* ========= Tabela ampla ========= */
+.table-wide{
+  width: max-content;        /* faz a tabela crescer além da viewport quando necessário */
+  min-width: 100%;
+  margin: 0 auto;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.table-wide th,.table-wide td{ white-space: nowrap; padding: 8px 10px; }
+.table-wide thead th{
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  z-index: 4;           /* acima das células do corpo */
+}
+.split-col{ background: var(--panel-2); border-bottom: 1px solid var(--border); }
+
+/* destaques */
+.best-split{ outline: 2px dashed var(--accent2); outline-offset: -2px; border-radius: 6px; }
+.best-cum{   outline: 2px dashed var(--accent);  outline-offset: -2px; border-radius: 6px; }
+.cell-bad{ color: var(--bad) }
+
+/* duas linhas por célula: Split (l1) / Acum (l2) */
+.cell-lines .l1{ display:block; font-weight:600 }
+.cell-lines .l2{ display:block; font-size:12px; color:var(--muted) }
+
+/* Toggle “cards/list” */
+.seg{display:inline-flex;background:var(--panel-2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.seg-btn{padding:6px 10px;border:none;background:transparent;color:var(--text);cursor:pointer}
+.seg-btn:hover{filter:brightness(1.07)}
+.seg-btn.active{background:color-mix(in srgb, var(--panel-2) 75%, var(--text) 25%);}
+
+/* Tabela simples de lista */
+.table-plain{width:100%;border-collapse:collapse}
+.table-plain th,.table-plain td{padding:10px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+.table-plain th{color:var(--muted);font-weight:600}
+.table-plain tr:hover{background:color-mix(in srgb, var(--panel-2) 88%, var(--text) 12%)}
+
+/* barra de filtros da Home/Event */
+.toolbar input[type="text"]{ width: 280px; max-width: 40vw; }
+.toolbar select{ min-width: 180px; }
+
+form .card-sm h3{ margin:0 0 6px 0; font-size:16px }
+
+footer {
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+  padding: 12px 16px;
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+footer .footer-wrap {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+footer .footer-wrap > div {
+  min-width: 260px;   /* largura mínima garantida */
+  max-width: 600px;   /* largura máxima confortável para leitura */
+}
+
+footer h4 {
+  margin: 0 0 4px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+footer p, footer ul {
+  margin: 0;
+}
+
+footer ul {
+  list-style: none;
+  padding: 0;
+}
+
+footer ul li {
+  margin-bottom: 4px;
+}
+
+footer a {
+  color: var(--tag);
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
