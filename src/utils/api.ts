@@ -1,18 +1,41 @@
 // src/utils/api.ts
-// Base do backend (pode ajustar no .env: VITE_API_BASE)
-export const API = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000';
 
-async function postForm(url: string, fd: FormData) {
-  const resp = await fetch(url, { method: 'POST', body: fd });
-  if (!resp.ok) {
-    // tenta extrair detalhe do FastAPI
-    const errJson = await resp.json().catch(() => ({} as any));
-    const detail = errJson?.detail || `${resp.status} ${resp.statusText}`;
+// Base:
+// - Em dev/local, defina VITE_API_BASE=http://127.0.0.1:8000 (.env.local)
+// - Em produção com Vercel + rewrites, deixe VITE_API_BASE em branco e use caminhos relativos.
+const API_BASE: string =
+  (import.meta as any)?.env?.VITE_API_BASE?.toString().trim().replace(/\/+$/, "") || "";
+
+function joinUrl(path: string): string {
+  const p = path.startsWith("/") ? path : `/${path}`;
+  // Quando API_BASE === "", retorna caminho relativo (para o proxy do Vercel)
+  return `${API_BASE}${p}`;
+}
+
+async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const url = joinUrl(path);
+  const r = await fetch(url, init);
+  if (!r.ok) {
+    let detail = `${r.status} ${r.statusText}`;
+    try {
+      const j = await r.json();
+      if (j?.detail) detail = j.detail;
+    } catch {
+      // ignore json parse errors
+    }
     const e = new Error(detail) as any;
-    e.status = resp.status;
+    e.status = r.status;
+    e.url = url;
     throw e;
   }
-  return resp.json();
+  const ct = r.headers.get("content-type") || "";
+  return ct.includes("application/json") ? (r.json() as Promise<T>) : ((undefined as unknown) as T);
+}
+
+// Debug: ver no console qual base está ativa
+if (typeof window !== "undefined") {
+  (window as any).__API_BASE__ = API_BASE || "(relative)";
+  console.log("[api] API_BASE =", (window as any).__API_BASE__);
 }
 
 /** Importa evento (IOF ResultList obrigatório) e, opcionalmente, CourseData e organizador. */
@@ -22,70 +45,52 @@ export async function importEventWithCourse(params: {
   organizer?: string;
 }) {
   const fd = new FormData();
-  fd.append('result', params.resultFile);
-  if (params.courseFile) fd.append('course', params.courseFile);
-  if (params.organizer) fd.append('organizer', params.organizer);
+  fd.append("result", params.resultFile);
+  if (params.courseFile) fd.append("course", params.courseFile);
+  if (params.organizer) fd.append("organizer", params.organizer);
 
-  // rota nova
   try {
-    return await postForm(`${API}/api/events/import`, fd);
+    return await fetchJson<{ id: string; name: string }>("/api/events/import", { method: "POST", body: fd });
   } catch (e: any) {
-    // compat: se o backend ainda não tiver a rota nova, tenta a antiga
     if (e?.status !== 404) throw e;
+    // compat: backend antigo
     const fd2 = new FormData();
-    fd2.append('file', params.resultFile);
-    return await postForm(`${API}/api/events/import-xml`, fd2);
+    fd2.append("file", params.resultFile);
+    return await fetchJson<{ id: string; name: string }>("/api/events/import-xml", { method: "POST", body: fd2 });
   }
 }
 
 /** Blob completo do evento (classes, competidores, courseData…) */
 export async function getEventBlob(id: string) {
-  const r = await fetch(`${API}/api/events/${encodeURIComponent(id)}/blob`);
-  if (!r.ok) {
-    const err = await r.json().catch(() => ({}));
-    throw new Error(err?.detail || `Blob ${r.status}`);
-  }
-  return r.json();
+  return fetchJson(`/api/events/${encodeURIComponent(id)}/blob`);
 }
 
-/** Índice de eventos { id: {id, name, date, organizer} } */
+/** Índice de eventos { id: {id, name, date, organizer, ...} } */
 export async function listEvents() {
-  const r = await fetch(`${API}/api/events`);
-  if (!r.ok) {
-    const err = await r.json().catch(() => ({}));
-    throw new Error(err?.detail || `Falha ao listar (${r.status})`);
-  }
-  return r.json() as Promise<Record<string, { id: string; name: string; date?: string; organizer?: string }>>;
+  return fetchJson<Record<string, { id: string; name?: string; date?: string; organizer?: string }>>("/api/events");
 }
+
+/** Delete (rota admin) */
+export async function deleteEvent(eid: string, adminToken: string) {
+  return fetchJson<{ ok: boolean }>(`/api/events/${encodeURIComponent(eid)}`, {
+    method: "DELETE",
+    headers: { "x-admin-token": adminToken },
+  });
+}
+
+/** Health */
+export const getHealth = () => fetchJson<{ ok: boolean; version?: string }>("/api/health");
 
 /* ============================
  * Aliases p/ compatibilidade
- * (evita quebrar imports antigos)
  * ============================ */
 
-/** Alias do importEventWithCourse (antigo nome usado em alguns componentes) */
 export async function uploadIOFXML(resultFile: File, courseFile?: File | null, organizer?: string) {
   return importEventWithCourse({ resultFile, courseFile: courseFile ?? undefined, organizer });
 }
-
-/** Alias do getEventBlob */
 export async function fetchEventBlob(eid: string) {
   return getEventBlob(eid);
 }
-
-/** Alias do listEvents */
 export async function fetchEventsIndex() {
   return listEvents();
-}
-
-export async function deleteEvent(eid: string, adminToken: string) {
-  const r = await fetch(`${API}/api/events/${encodeURIComponent(eid)}`, {
-    method: 'DELETE',
-    headers: { 'x-admin-token': adminToken }
-  });
-  if (!r.ok) {
-    const err = await r.json().catch(() => ({} as any));
-    throw new Error(err?.detail || `Falha ao excluir (${r.status})`);
-  }
-  return r.json();
 }
