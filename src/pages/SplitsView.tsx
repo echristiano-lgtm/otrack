@@ -86,9 +86,7 @@ export default function SplitsView() {
     return [...list, 'Chegada'];
   }, [competitors]);
 
-  // links no lado esquerdo
-  const graphHref = `/evento/${encodeURIComponent(eid!)}/classe/${encodeURIComponent(className)}/grafico`;
-
+  
   return (
     <div className="grid">
       <div className="panel panel--splits">
