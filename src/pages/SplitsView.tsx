@@ -15,6 +15,10 @@ export default function SplitsView() {
   const [ev, setEv] = React.useState<any | null>(evLocal || null);
   const [loading, setLoading] = React.useState<boolean>(!evLocal);
   const [error, setError] = React.useState<string>('');
+    // monta URL do gráfico com encode seguro
+  const eidSafe = encodeURIComponent(eid!);
+  const clsSafe = encodeURIComponent(className);
+  const graphHref = `/evento/${eidSafe}/classe/${clsSafe}/grafico`;
 
   // fallback: busca do backend e grava no storage
   React.useEffect(() => {
@@ -90,11 +94,11 @@ export default function SplitsView() {
       <div className="panel panel--splits">
         <div className="panel-head">
           <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+            <div className="row" style={{ gap: 8, alignItems: 'center', flex: '0 0 auto' }}>
               <button className="btn" onClick={() => navigate(-1)}>⬅️ Voltar</button>
               <Link className="btn" to={graphHref}>📈 Gráfico</Link>
             </div>
-            <h2>Splits — {className}</h2>
+            <h2 style={{ margin: 0, flex: '1 1 auto', textAlign: 'right', whiteSpace: 'nowrap'}}>Splits — {className}</h2>
           </div>
         </div>
 
