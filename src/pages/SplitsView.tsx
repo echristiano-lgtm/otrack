@@ -1,6 +1,6 @@
 import React from 'react';
 import { useMemo } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, generatePath } from 'react-router-dom';
 import { load } from '@/utils/storage';
 import { getEventBlob as fetchEventBlob } from '@/utils/api';
 import SplitTable from '@/components/SplitTable';
@@ -9,6 +9,10 @@ export default function SplitsView() {
   const { eid, cls } = useParams();
   const navigate = useNavigate();
   const className = decodeURIComponent(cls || '');
+  const graphHref = generatePath('/evento/:eid/classe/:cls/splits-graph', {
+  eid: eid!,            // usa o próprio param, sem re-encode manual
+  cls: cls!,       // já decodificado; o router cuida do encode
+});
 
   // tenta do storage
   const evLocal = load().events?.[eid!];
@@ -18,8 +22,7 @@ export default function SplitsView() {
     // monta URL do gráfico com encode seguro
   const eidSafe = encodeURIComponent(eid!);
   const clsSafe = encodeURIComponent(className);
-  const graphHref = `/evento/${eidSafe}/classe/${clsSafe}/grafico`;
-
+  
   // fallback: busca do backend e grava no storage
   React.useEffect(() => {
     let cancelled = false;
@@ -91,14 +94,23 @@ export default function SplitsView() {
     <div className="grid">
       <div className="panel panel--splits">
         <div className="panel-head">
-          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="row" style={{ gap: 8, alignItems: 'center', flex: '0 0 auto' }}>
-              <button className="btn" onClick={() => navigate(-1)}>⬅️ Voltar</button>
-              <Link className="btn" to={graphHref}>📈 Gráfico</Link>
-            </div>
-            <h2 style={{ margin: 0, flex: '1 1 auto', textAlign: 'right', whiteSpace: 'nowrap'}}>Splits — {className}</h2>
-          </div>
-        </div>
+  <div
+    className="row"
+    style={{ justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
+  >
+    {/* Esquerda: Voltar + Gráfico */}
+    <div className="row" style={{ gap: 8, alignItems: 'center', flex: '0 0 auto' }}>
+      <button className="btn" onClick={() => navigate(-1)}>⬅️ Voltar</button>
+      <Link className="btn" to={graphHref}>📈 Gráfico</Link>
+    </div>
+
+    {/* Direita: Título */}
+    <h2 style={{ margin: 0, flex: '1 1 auto', textAlign: 'right', whiteSpace: 'nowrap' }}>
+      Splits — {className}
+    </h2>
+  </div>
+</div>
+
 
         <div className="panel-legend">
           <div className="legend">
