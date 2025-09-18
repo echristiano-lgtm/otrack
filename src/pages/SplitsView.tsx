@@ -115,8 +115,8 @@ export default function SplitsView() {
         <div className="panel-legend">
           <div className="legend">
             {/* Ajuste as classes .swatch.split e .swatch.cum no CSS para cores distintas */}
-            <span className="chip"><span className="swatch split"></span> Melhor split</span>
-            <span className="chip"><span className="swatch cum"></span> Melhor acumulado</span>
+            <span className="chip"><span className="best-split"></span> Melhor split</span>
+            <span className="chip"><span className="best-cum"></span> Melhor acumulado</span>
           </div>
         </div>
 
