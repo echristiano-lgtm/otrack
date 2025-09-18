@@ -4,6 +4,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { load } from '@/utils/storage';
 import { deleteEvent } from '@/utils/api';
 import { isAdminEnabled, getAdminToken } from '@/utils/admin';
+import ShareButton from "@/components/ShareButton";
 
 type AnyObj = Record<string, any>;
 type CourseInfo = { lengthM?: number; climbM?: number };
@@ -87,10 +88,15 @@ export default function Event() {
   const { eid } = useParams();
   const navigate = useNavigate();
 
+  
+
   const ev = load().events?.[eid!];
   const [view, setView] = useState<'cards' | 'list'>(
     (localStorage.getItem(EVENT_VIEW_KEY) as 'cards' | 'list') || 'cards'
   );
+
+  const base = typeof window !== "undefined" ? window.location.origin : "";
+  const shareUrl = `${base}/evento/${encodeURIComponent(ev.id)}`;
 
   function setViewPersist(v: 'cards' | 'list') {
     setView(v);
@@ -130,6 +136,7 @@ export default function Event() {
             </div>
             <button className="btn" onClick={() => navigate(-1)}>⬅️ Voltar</button>
             <Link className="btn" to="/">🏠 Início</Link>
+	    <ShareButton url={shareUrl} title={ev.name}>🔗 Compartilhar</ShareButton>
             {isAdminEnabled() && (
               <button
                 className="btn"

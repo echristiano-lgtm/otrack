@@ -1,178 +1,187 @@
 // src/pages/Home.tsx
-import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { listEvents, getEventBlob } from '@/utils/api';
-import { load, upsertEvent, save } from '@/utils/storage';
+import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { listEvents } from "@/utils/api";
 
 type EvIndexItem = {
   id: string;
   name?: string;
-  date?: string;
+  date?: string;        // 'YYYY-MM-DD'
   organizer?: string;
   classesCount?: number;
 };
-type EvIndex = Record<string, EvIndexItem>;
 
-const HOME_VIEW_KEY = 'ui.view.home'; // 'cards' | 'list'
+const VIEW_KEY = "meos_view_mode"; // 'cards' | 'list'
 
 export default function Home() {
-  const [idx, setIdx] = useState<EvIndex>({});
-  const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
-  const [err, setErr] = useState<string>('');
-  const [view, setView] = useState<'cards' | 'list'>(
-    (localStorage.getItem(HOME_VIEW_KEY) as 'cards' | 'list') || 'cards'
-  );
+  const [idx, setIdx] = useState<Record<string, EvIndexItem>>({});
+  const [loading, setLoading] = useState<boolean>(true);
+  const [err, setErr] = useState<string>("");
 
-  // Buscar índice do backend e sincronizar cache local
+  // Busca + Ordenação
+  const [q, setQ] = useState("");
+  const [sortDesc, setSortDesc] = useState(true); // true = mais recentes primeiro
+
+  // Toggle de visualização (Cards/Lista), preserva no localStorage
+  const [view, setView] = useState<"cards" | "list">(() => {
+    try {
+      const v = localStorage.getItem(VIEW_KEY) as "cards" | "list" | null;
+      return v === "list" ? "list" : "cards";
+    } catch {
+      return "cards";
+    }
+  });
   useEffect(() => {
-    let cancelled = false;
+    try { localStorage.setItem(VIEW_KEY, view); } catch {}
+  }, [view]);
+
+  // Carrega índice
+  useEffect(() => {
     (async () => {
-      setLoading(true);
-      setErr('');
       try {
-        const backendIdx = await listEvents(); // { [id]: { id, name, date, organizer, classesCount? } }
-        if (cancelled) return;
-        setIdx(backendIdx || {});
-        setLoading(false);
-
-        // --- Sincronização de cache local ---
-        setSyncing(true);
-        const local = load();
-
-        // a) Baixar blobs que ainda não temos
-        const missing = Object.keys(backendIdx).filter(id => !local.events[id]);
-        for (const id of missing) {
-          try {
-            const ev = await getEventBlob(id);
-            upsertEvent(ev);
-          } catch (e) {
-            console.warn('Falha ao baixar blob', id, e);
-          }
-        }
-
-        // b) Remover do cache o que não existe no backend
-        const backendIds = new Set(Object.keys(backendIdx));
-        const store = load();
-        let changed = false;
-        for (const id of Object.keys(store.events)) {
-          if (!backendIds.has(id)) {
-            delete store.events[id];
-            changed = true;
-          }
-        }
-        if (changed) save(store);
+        setLoading(true);
+        const data = await listEvents();
+        setIdx(data || {});
+        setErr("");
       } catch (e: any) {
-        if (!cancelled) {
-          setErr(e?.message || 'Falha ao carregar eventos');
-          setLoading(false);
-        }
+        setErr(e?.message || "Falha ao carregar eventos");
       } finally {
-        if (!cancelled) setSyncing(false);
+        setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
   }, []);
 
-  const items = useMemo(() => {
-    return Object.values(idx).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-  }, [idx]);
+  // Lista filtrada + ordenada
+  const filtered = useMemo(() => {
+    const norm = (s: string = "") =>
+      s.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "").trim();
 
-  function setViewPersist(v: 'cards' | 'list') {
-    setView(v);
-    localStorage.setItem(HOME_VIEW_KEY, v);
-  }
+    let out = Object.values(idx || {}) as EvIndexItem[];
+
+    if (q.trim()) {
+      const nq = norm(q);
+      out = out.filter(ev => norm(ev.name || "").includes(nq));
+    }
+
+    out = out.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+    if (sortDesc) out = out.slice().reverse();
+
+    return out;
+  }, [idx, q, sortDesc]);
+
+  // Estilos de botão ativo do cabeçalho (Cards/Lista)
+  const activeBtn =
+    { outline: "2px solid rgba(0,0,0,0.15)", background: "rgba(0,0,0,0.04)" } as React.CSSProperties;
 
   return (
     <div className="grid">
       <div className="panel">
-        <div className="row" style={{ justifyContent:'space-between', alignItems:'center' }}>
+        {/* Cabeçalho principal (igual ao print: Cards | Lista | Importar XML) */}
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
           <h2>Eventos</h2>
-          <div className="row" style={{ gap:8 }}>
-            <div className="row chip" style={{ gap:6 }}>
-              <button className="btn" onClick={() => setViewPersist('cards')} aria-pressed={view==='cards'}>
-                🗂️ Cards
-              </button>
-              <button className="btn" onClick={() => setViewPersist('list')} aria-pressed={view==='list'}>
-                📋 Lista
-              </button>
-            </div>
+          <div className="row" style={{ gap: 12, flexWrap: "wrap" }}>
+            <button
+              className="btn"
+              onClick={() => setView("cards")}
+              aria-pressed={view === "cards"}
+              style={view === "cards" ? activeBtn : undefined}
+              title="Ver em cards"
+            >
+              📁 Cards
+            </button>
+            <button
+              className="btn"
+              onClick={() => setView("list")}
+              aria-pressed={view === "list"}
+              style={view === "list" ? activeBtn : undefined}
+              title="Ver em lista"
+            >
+              🗒️ Lista
+            </button>
             <Link className="btn" to="/importar">⬆️ Importar XML</Link>
           </div>
         </div>
 
-        {loading && <div className="small muted" style={{ marginTop:8 }}>Carregando…</div>}
-        {err && (
-          <div className="card-sm" style={{ marginTop:8, borderColor:'#dc2626', color:'#dc2626' }}>
-            <strong>Erro:</strong> {err}
+        {/* Linha auxiliar (discreta) para busca e ordenação por data */}
+        <div className="row" style={{ gap: 8, marginTop: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <input
+            type="search"
+            placeholder="Buscar por nome do evento…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            style={{ padding: 8, minWidth: 280, border: "1px solid #dde3ea", borderRadius: 8 }}
+          />
+          <button className="btn" onClick={() => setSortDesc(s => !s)}>
+            {sortDesc ? "⬇️ Ordenar por data (recente)" : "⬆️ Ordenar por data (antiga)"}
+          </button>
+          {q && <span className="chip">Resultados: {filtered.length}</span>}
+        </div>
+
+        {/* Estados */}
+        {loading && <div className="card-sm" style={{ marginTop: 12 }}>Carregando…</div>}
+        {err && !loading && (
+          <div className="card-sm" style={{ marginTop: 12, color: "crimson" }}>
+            Erro: {err}
           </div>
         )}
 
-        {!loading && !err && items.length === 0 && (
-          <div className="card-sm" style={{ marginTop:12 }}>
-            Nenhum evento por aqui ainda. Use <strong>Importar IOF</strong> para começar.
-          </div>
-        )}
-
-        {/* === Cards === */}
-        {view === 'cards' && !!items.length && (
-          <div className="cards" style={{ marginTop:12 }}>
-            {items.map(ev => (
-              <div key={ev.id} className="card-sm">
-                <h3 style={{ marginBottom:4 }}>
-                  <Link to={`/evento/${ev.id}`}>{ev.name || '(sem nome)'}</Link>
-                </h3>
-                <div className="meta">
-                  {[ev.date, ev.organizer].filter(Boolean).join(' · ')}
-                </div>
-                <div className="row" style={{ gap:8, marginTop:8 }}>
-                  {typeof ev.classesCount === 'number' && (
-                    <span className="chip" title="Número de categorias">🏷️ {ev.classesCount}</span>
-                  )}
-                  <Link className="btn" to={`/evento/${ev.id}`}>📄 Abrir</Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* === Lista === */}
-        {view === 'list' && !!items.length && (
-          <div className="scrollx" style={{ marginTop:12 }}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Evento</th>
-                  <th>Data</th>
-                  <th>Organizador</th>
-                  <th>Categorias</th>
-                  <th>Abrir</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map(ev => (
-                  <tr key={ev.id}>
-                    <td>
-                      <Link to={`/evento/${ev.id}`}>{ev.name || '(sem nome)'}</Link>
-                    </td>
-                    <td>{ev.date || '-'}</td>
-                    <td>{ev.organizer || '-'}</td>
-                    <td>{typeof ev.classesCount === 'number' ? ev.classesCount : '-'}</td>
-                    <td>
-                      <Link className="btn" to={`/evento/${ev.id}`}>📄 Abrir</Link>
-                    </td>
-                  </tr>
+        {/* Conteúdo */}
+        {!loading && !err && (
+          <>
+            {filtered.length === 0 ? (
+              <div className="card-sm" style={{ marginTop: 12 }}>Nenhum evento encontrado.</div>
+            ) : view === "cards" ? (
+              // ===== Cards =====
+              <div className="cards" style={{ marginTop: 12 }}>
+                {filtered.map((ev) => (
+                  <div key={ev.id} className="card-sm">
+                    <h3 style={{ marginBottom: 6 }}>
+                      <Link to={`/evento/${encodeURIComponent(ev.id)}`}>{ev.name || ev.id}</Link>
+                    </h3>
+                    <div className="row" style={{ gap: 8, flexWrap: "wrap", marginBottom: 6, color: "var(--muted)" }}>
+                      {ev.date && <span className="chip">🗓️ {ev.date}</span>}
+                      {!!ev.classesCount && <span className="chip">📚 {ev.classesCount} categorias</span>}
+                      {ev.organizer && <span className="chip">🏷️ {ev.organizer}</span>}
+                    </div>
+                    <div className="row" style={{ gap: 8 }}>
+                      <Link className="btn" to={`/evento/${encodeURIComponent(ev.id)}`}>📄 Abrir</Link>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            ) : (
+              // ===== Lista (tabela) =====
+              <div style={{ marginTop: 12, overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ textAlign: "left", borderBottom: "1px solid #e6edf3" }}>
+                      <th style={{ padding: "10px 8px" }}>Evento</th>
+                      <th style={{ padding: "10px 8px" }}>Data</th>
+                      <th style={{ padding: "10px 8px" }}>Organizador</th>
+                      <th style={{ padding: "10px 8px" }}>Categorias</th>
+                      <th style={{ padding: "10px 8px" }}>Abrir</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((ev) => (
+                      <tr key={ev.id} style={{ borderBottom: "1px solid #f3f6f9" }}>
+                        <td style={{ padding: "10px 8px" }}>
+                          <Link to={`/evento/${encodeURIComponent(ev.id)}`}>{ev.name || ev.id}</Link>
+                        </td>
+                        <td style={{ padding: "10px 8px" }}>{ev.date || "-"}</td>
+                        <td style={{ padding: "10px 8px" }}>{ev.organizer || "-"}</td>
+                        <td style={{ padding: "10px 8px" }}>{ev.classesCount ?? "-"}</td>
+                        <td style={{ padding: "10px 8px" }}>
+                          <Link className="btn" to={`/evento/${encodeURIComponent(ev.id)}`}>📄 Abrir</Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
-
-        {syncing && !loading ? (
-          <div className="small muted" style={{ marginTop:8 }}>
-            Sincronizando cache local…
-          </div>
-        ) : null}
       </div>
     </div>
   );

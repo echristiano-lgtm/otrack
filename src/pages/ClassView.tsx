@@ -33,7 +33,7 @@ export default function ClassView() {
     <div className="grid">
       <div className="panel">
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2>Classe — {clsName}</h2>
+          <h2>Categoria — {clsName}</h2>
           <div className="row" style={{ gap: 8 }}>
             <button className="btn" onClick={() => navigate(-1)}>⬅️ Voltar</button>
             <Link className="btn" to={`./splits`}>🧮 Splits (tabela)</Link>

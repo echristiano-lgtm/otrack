@@ -10,7 +10,7 @@ export default function Layout() {
       <header>
         <div className="container row" style={{ justifyContent: 'space-between' }}>
           <div className="row">
-            <Link to="/" className="btn">🏁 MEOS Web</Link>
+            <Link to="/" className="btn">🏁 OTrack - Resultados on-line 🚩​🧭🏃</Link>
           </div>
           <div className="row">
             <ThemeToggle />
