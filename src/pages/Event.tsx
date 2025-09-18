@@ -105,6 +105,13 @@ export default function Event() {
         if (!cancelled) {
           setEv(blob);
           setError('');
+	   try {
+            const store = load();
+            const next = { ...(store || {}) };
+            next.events = { ...(store?.events || {}), [eid]: blob };
+            localStorage.setItem('meos.events', JSON.stringify(next));
+          } catch {}
+
         }
       } catch (e: any) {
         if (!cancelled) setError(e?.message || 'Falha ao carregar evento');
@@ -154,6 +161,22 @@ export default function Event() {
     );
   }
 
+
+   
+  const base = typeof window !== 'undefined' ? window.location.origin : '';
+  const shareUrl = `${base}/evento/${encodeURIComponent(ev.id)}`;
+  async function onShare() {
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: ev.name || 'Evento', url: shareUrl });
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Link copiado!');
+      } else {
+        prompt('Copie o link do evento:', shareUrl);
+      }
+    } catch {}
+  }
   const classes = Object.keys(ev.classes || {}).sort((a, b) => a.localeCompare(b));
   const showDebug =
     typeof window !== 'undefined' &&
@@ -175,7 +198,7 @@ export default function Event() {
             </div>
             <button className="btn" onClick={() => navigate(-1)}>⬅️ Voltar</button>
             <Link className="btn" to="/">🏠 Início</Link>
-
+	    <button className="btn" onClick={onShare}>🔗 Compartilhar</button>
             {/* ===== Excluir evento (oculto por padrão) =====
                 Só aparece quando isAdminEnabled() === true */}
             {isAdminEnabled() && (
