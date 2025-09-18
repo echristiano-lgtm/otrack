@@ -1,10 +1,9 @@
 // src/pages/Event.tsx
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { load } from '@/utils/storage';
-import { deleteEvent } from '@/utils/api';
+import { deleteEvent, getEventBlob as fetchEventBlob } from '@/utils/api';
 import { isAdminEnabled, getAdminToken } from '@/utils/admin';
-import ShareButton from "@/components/ShareButton";
 
 type AnyObj = Record<string, any>;
 type CourseInfo = { lengthM?: number; climbM?: number };
@@ -88,28 +87,66 @@ export default function Event() {
   const { eid } = useParams();
   const navigate = useNavigate();
 
-  
+  // carrega do storage…
+  const evLocal = load().events?.[eid!];
+  const [ev, setEv] = useState<any | null>(evLocal || null);
 
-  const ev = load().events?.[eid!];
+  // …e se não tiver (deep-link/refresh), busca no backend
+  const [loading, setLoading] = useState<boolean>(!evLocal);
+  const [error, setError] = useState<string>('');
+
+  useEffect(() => {
+    let cancelled = false;
+    async function run() {
+      if (evLocal || !eid) return;
+      try {
+        setLoading(true);
+        const blob = await fetchEventBlob(eid);
+        if (!cancelled) {
+          setEv(blob);
+          setError('');
+        }
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message || 'Falha ao carregar evento');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    run();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eid]);
+
   const [view, setView] = useState<'cards' | 'list'>(
     (localStorage.getItem(EVENT_VIEW_KEY) as 'cards' | 'list') || 'cards'
   );
-
-  const base = typeof window !== "undefined" ? window.location.origin : "";
-  const shareUrl = `${base}/evento/${encodeURIComponent(ev.id)}`;
-
   function setViewPersist(v: 'cards' | 'list') {
     setView(v);
     localStorage.setItem(EVENT_VIEW_KEY, v);
   }
 
-  if (!ev) {
+  if (loading) {
     return (
       <div className="grid">
         <div className="panel">
-          <h2>Evento não encontrado</h2>
-          <div className="small muted">Talvez você precise importar ou sincronizar os dados.</div>
-          <div className="row" style={{ gap: 8, marginTop: 8 }}>
+          <h2>Carregando evento…</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !ev) {
+    return (
+      <div className="grid">
+        <div className="panel">
+          <h2>Ops — algo quebrou na tela</h2>
+          <div className="card-sm" style={{ marginTop: 8 }}>
+            {error || 'Evento não encontrado'}
+          </div>
+          <div className="row" style={{ gap: 8, marginTop: 12 }}>
+            <button className="btn" onClick={() => navigate(-1)}>⬅️ Voltar</button>
             <Link className="btn" to="/">🏠 Início</Link>
           </div>
         </div>
@@ -118,7 +155,9 @@ export default function Event() {
   }
 
   const classes = Object.keys(ev.classes || {}).sort((a, b) => a.localeCompare(b));
-  const showDebug = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('debug') === '1';
+  const showDebug =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('debug') === '1';
 
   return (
     <div className="grid">
@@ -127,16 +166,18 @@ export default function Event() {
           <h2>{ev.name}</h2>
           <div className="row" style={{ gap: 8 }}>
             <div className="row chip" style={{ gap: 6 }}>
-              <button className="btn" onClick={() => setViewPersist('cards')} aria-pressed={view==='cards'}>
+              <button className="btn" onClick={() => setViewPersist('cards')} aria-pressed={view === 'cards'}>
                 🗂️ Cards
               </button>
-              <button className="btn" onClick={() => setViewPersist('list')} aria-pressed={view==='list'}>
+              <button className="btn" onClick={() => setViewPersist('list')} aria-pressed={view === 'list'}>
                 📋 Lista
               </button>
             </div>
             <button className="btn" onClick={() => navigate(-1)}>⬅️ Voltar</button>
             <Link className="btn" to="/">🏠 Início</Link>
-	    <ShareButton url={shareUrl} title={ev.name}>🔗 Compartilhar</ShareButton>
+
+            {/* ===== Excluir evento (oculto por padrão) =====
+                Só aparece quando isAdminEnabled() === true */}
             {isAdminEnabled() && (
               <button
                 className="btn"
@@ -146,12 +187,17 @@ export default function Event() {
                   if (!sure) return;
                   try {
                     await deleteEvent(eid!, getAdminToken());
-                    // limpar cache local
-                    const store = load();
-                    if (store.events && store.events[eid!]) {
-                      delete store.events[eid!];
-                      localStorage.setItem('meos.events', JSON.stringify(store));
-                    }
+
+                    // limpar cache local (mantém sua lógica atual)
+                    try {
+                      const store = load();
+                      if (store.events && store.events[eid!]) {
+                        delete store.events[eid!];
+                        // dependendo da sua storage, ajuste a chave abaixo:
+                        localStorage.setItem('meos.events', JSON.stringify(store));
+                      }
+                    } catch {}
+
                     navigate('/');
                   } catch (e: any) {
                     alert(e?.message || 'Falha ao excluir');
@@ -178,7 +224,7 @@ export default function Event() {
                 {classes.map((clsName) => {
                   const cls = ev.classes[clsName];
                   const comp = (cls?.competitors || []) as any[];
-                  const okCount = comp.filter(c => c.status === 'OK').length;
+                  const okCount = comp.filter((c) => c.status === 'OK').length;
 
                   const ci = getCourseInfo(ev, clsName);
                   const hasLen = Number.isFinite(ci.lengthM!);
@@ -226,7 +272,7 @@ export default function Event() {
                     {classes.map((clsName) => {
                       const cls = ev.classes[clsName];
                       const comp = (cls?.competitors || []) as any[];
-                      const okCount = comp.filter(c => c.status === 'OK').length;
+                      const okCount = comp.filter((c) => c.status === 'OK').length;
                       const ci = getCourseInfo(ev, clsName);
                       return (
                         <tr key={clsName}>
