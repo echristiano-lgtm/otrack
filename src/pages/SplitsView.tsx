@@ -105,7 +105,7 @@ export default function SplitsView() {
     </div>
 
     {/* Direita: Título */}
-    <h2 style={{ margin: 0, flex: '1 1 auto', textAlign: 'right', whiteSpace: 'nowrap' }}>
+    <h2 style={{ margin: 0, flex: '1 1 auto', textAlign: 'left', whiteSpace: 'nowrap' }}>
       Splits — {className}
     </h2>
   </div>
@@ -113,12 +113,36 @@ export default function SplitsView() {
 
 
         <div className="panel-legend">
-          <div className="legend">
-            {/* Ajuste as classes .swatch.split e .swatch.cum no CSS para cores distintas */}
-            <span className="chip"><span className="best-split"></span> Melhor split</span>
-            <span className="chip"><span className="best-cum"></span> Melhor acumulado</span>
-          </div>
-        </div>
+  <div className="legend">
+    <span className="chip">
+      <span
+        className="best-split"
+        style={{
+          display: 'inline-block',
+          width: 16,
+          height: 16,
+          marginRight: 6,
+          verticalAlign: '-3px'
+        }}
+      />
+      Melhor split
+    </span>
+
+    <span className="chip">
+      <span
+        className="best-cum"
+        style={{
+          display: 'inline-block',
+          width: 16,
+          height: 16,
+          marginRight: 6,
+          verticalAlign: '-3px'
+        }}
+      />
+      Melhor acumulado
+    </span>
+  </div>
+</div>
 
         <div className="splits-wrap">
           {competitors.length === 0 ? (
