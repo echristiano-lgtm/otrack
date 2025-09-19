@@ -113,34 +113,9 @@ export default function SplitsView() {
 
 
         <div className="panel-legend">
-  <div className="legend">
-    <span className="chip">
-      <span
-        className="best-split"
-        style={{
-          display: 'inline-block',
-          width: 16,
-          height: 16,
-          marginRight: 6,
-          verticalAlign: '-3px'
-        }}
-      />
-      Melhor split
-    </span>
-
-    <span className="chip">
-      <span
-        className="best-cum"
-        style={{
-          display: 'inline-block',
-          width: 16,
-          height: 16,
-          marginRight: 6,
-          verticalAlign: '-3px'
-        }}
-      />
-      Melhor acumulado
-    </span>
+  <div className="legend" style={{ display: 'flex', gap: 12 }}>
+    <span className="chip best-split">Melhor split</span>
+    <span className="chip best-cum">Melhor acumulado</span>
   </div>
 </div>
 
