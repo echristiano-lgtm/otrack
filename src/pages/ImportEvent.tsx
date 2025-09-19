@@ -142,7 +142,7 @@ export default function ImportEvent() {
           <div className="card-sm">
             <h3>3) Organizador (opcional)</h3>
             <div className="small muted" style={{ marginBottom: 6 }}>
-              Preencha para inserir/sobrescrever caso o arquivo não traga (ou traga vazio).
+              Preencha para sobrescrever caso o arquivo XML não possua essa informação.
             </div>
             <input
               type="text"

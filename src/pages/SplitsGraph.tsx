@@ -279,7 +279,7 @@ export default function SplitsGraph() {
     <div className="grid">
       <div className="panel">
         <div className="row" style={{justifyContent:'space-between', alignItems:'center'}}>
-          <h2>Gráfico — Tempo acumulado (invertido) — {ev?.name}</h2>
+          <h2>Tempo acumulado — {ev?.name}</h2>
           <div className="row">
             <Link className="btn" to="../splits" relative="path">⬅️ Tabela</Link>
             <Link className="btn" to=".." relative="path">⬅️ Voltar</Link>
@@ -305,9 +305,7 @@ export default function SplitsGraph() {
               </label>
             ))}
           </div>
-          <div className="small muted" style={{marginTop:6}}>
-            A largura das colunas segue a distância entre controles (quando disponível no XML do percurso).
-          </div>
+         
         </div>
 
         {/* Gráfico */}

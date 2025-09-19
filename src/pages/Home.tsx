@@ -112,7 +112,7 @@ export default function Home() {
             style={{ padding: 8, minWidth: 280, border: "1px solid #dde3ea", borderRadius: 8 }}
           />
           <button className="btn" onClick={() => setSortDesc(s => !s)}>
-            {sortDesc ? "⬇️ Ordenar por data (recente)" : "⬆️ Ordenar por data (antiga)"}
+            {sortDesc ? "⬇️ Data (mais recente)" : "⬆️ Data (mais antiga)"}
           </button>
           {q && <span className="chip">Resultados: {filtered.length}</span>}
         </div>
